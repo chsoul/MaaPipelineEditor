@@ -55,6 +55,7 @@ pub fn start(app: &tauri::AppHandle, root: String) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     let mut child = engine::command(&engine_dir().join(binary_name()))
         .args(["--root", &root, "--managed"])
+        .env("MPE_DESKTOP_LOG_DIR", crate::settings::data_dir(app))
         .stdin(Stdio::piped())
         .stdout(Stdio::from(log.try_clone().map_err(|e| e.to_string())?))
         .stderr(Stdio::from(log))

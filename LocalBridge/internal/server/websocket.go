@@ -16,7 +16,7 @@ import (
 )
 
 // 通信协议版本
-const ProtocolVersion = "2.0.1"
+const ProtocolVersion = "2.0.2"
 
 // 版本握手路由
 const (

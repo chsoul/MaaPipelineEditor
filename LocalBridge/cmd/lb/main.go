@@ -17,6 +17,7 @@ import (
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	debugapi "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/api"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/diagnostics"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/managed"
@@ -220,6 +221,13 @@ func runServer(cmd *cobra.Command, args []string) error {
 	if err := logger.Init(cfg.Log.Level, cfg.Log.Dir, cfg.Log.PushToClient); err != nil {
 		fmt.Fprintf(os.Stderr, "初始化日志系统失败: %v\n", err)
 		return fmt.Errorf("服务启动失败，请查看上述日志")
+	}
+
+	diagnosticRecorder, snapshotErr := diagnostics.NewRecorder(filepath.Join(paths.GetDataDir(), "diagnostics-session.json"), diagnostics.Snapshot{
+		Root: cfg.EffectiveRoot(), Version: Version, LogDir: cfg.Log.Dir, MFWDir: paths.GetLogDir(), DesktopDir: os.Getenv("MPE_DESKTOP_LOG_DIR"),
+	})
+	if snapshotErr != nil {
+		logger.Warn("Diagnostics", "保存诊断会话失败: %v", snapshotErr)
 	}
 
 	logger.Info("Main", "Local Bridge 启动中... 版本: %s", Version)
@@ -445,7 +453,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 	rt.RegisterHandler(mfwHandler)
 
 	// 注册 Utility 协议处理器
-	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.EffectiveRoot(), Version)
+	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.EffectiveRoot(), diagnosticRecorder)
 	rt.RegisterHandler(utilityHandler)
 
 	// 注册 Config 协议处理器

@@ -1,3 +1,4 @@
+import type { MPELogExportPayload } from "@/utils/logExportPayload";
 import { message } from "@/utils/ui/antdAppApi";
 
 import { BaseProtocol } from "./BaseProtocol";
@@ -1003,19 +1004,22 @@ export class MFWProtocol extends BaseProtocol {
     return this.wsClient.send("/etl/utility/open_maafw_log_dir", {});
   }
 
-  public requestExportLogs(payload: {
-    frontendLogs: Record<string, unknown>;
-    frontendState: Record<string, unknown>;
-    openedFiles: Array<{ filePath: string; fileName: string; current: boolean }>;
-    manifest: Record<string, unknown>;
-  }): boolean {
+  private sendLogPayload(route: string, payload: MPELogExportPayload): boolean {
     if (!this.wsClient) return false;
-    return this.wsClient.send("/etl/utility/export_logs", {
+    return this.wsClient.send(route, {
       frontend_logs: payload.frontendLogs,
       frontend_state: payload.frontendState,
       opened_files: payload.openedFiles,
       manifest: payload.manifest,
     });
+  }
+
+  public requestExportLogs(payload: MPELogExportPayload): boolean {
+    return this.sendLogPayload("/etl/utility/export_logs", payload);
+  }
+
+  public snapshotLogs(payload: MPELogExportPayload): boolean {
+    return this.sendLogPayload("/etl/utility/snapshot_logs", payload);
   }
 
   public onLogsExported(callback: (data: {
@@ -1031,9 +1035,8 @@ export class MFWProtocol extends BaseProtocol {
     };
   }
 
-  public requestExportMFWLogs(): boolean {
-    if (!this.wsClient) return false;
-    return this.wsClient.send("/etl/utility/export_mfw_logs", {});
+  public requestExportMFWLogs(payload: MPELogExportPayload): boolean {
+    return this.sendLogPayload("/etl/utility/export_mfw_logs", payload);
   }
 
   public onMFWLogsExported(callback: (data: {

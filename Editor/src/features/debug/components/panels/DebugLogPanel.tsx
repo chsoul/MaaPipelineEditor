@@ -1,3 +1,4 @@
+import { buildMPELogExportPayload } from "@/utils/logExportPayload";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -130,13 +131,13 @@ export function DebugLogPanel({
     const unsubscribeExported = mfwProtocol.onMFWLogsExported(async (data) => {
       if (!data.success || !data.content) {
         setExporting(false);
-        message.error(data.message ?? "MFW 日志打包失败");
+        message.error(data.message ?? "诊断日志打包失败");
         return;
       }
 
       try {
         const saved = await saveLogArchive(data.content, data.filename ?? "mfw-logs.zip");
-        if (saved) message.success(saved.path ? `日志已保存至：${saved.path}` : "MFW 日志打包成功", 6);
+        if (saved) message.success(saved.path ? `日志已保存至：${saved.path}` : "诊断日志打包成功", 6);
       } catch (error) {
         message.error(`日志保存失败：${String(error)}`);
       } finally {
@@ -180,9 +181,9 @@ export function DebugLogPanel({
       return;
     }
     setExporting(true);
-    if (!mfwProtocol.requestExportMFWLogs()) {
+    if (!mfwProtocol.requestExportMFWLogs(buildMPELogExportPayload())) {
       setExporting(false);
-      message.error("发送 MFW 日志打包请求失败");
+      message.error("发送 诊断日志打包请求失败");
     }
   };
 
@@ -217,7 +218,7 @@ export function DebugLogPanel({
               loading={exporting}
               onClick={exportMFWLogs}
             >
-              一键打包 MFW 日志
+              一键打包诊断日志
             </Button>
             {logState.status === "loaded" && logState.content && (
               <Button

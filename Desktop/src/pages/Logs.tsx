@@ -117,11 +117,11 @@ export function Logs() {
             打开目录
           </Button>
           <Button
-            disabled={exporting || files.length === 0}
+            disabled={exporting}
             onClick={() => void exportAll()}
           >
             <Download size={17} />
-            {exporting ? "正在打包…" : "打包日志"}
+            {exporting ? "正在打包…" : "打包诊断日志"}
           </Button>
         </div>
       </header>

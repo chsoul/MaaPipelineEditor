@@ -1,3 +1,9 @@
+import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
+import { useDebugDiagnosticsStore } from "@/stores/debug/debugDiagnosticsStore";
+import { useInterfaceRunStore } from "@/features/project-interface/interfaceRunStore";
+import { useLoggerStore } from "@/stores/app/loggerStore";
+import { useOperationLogStore } from "@/stores/flow/operationLogStore";
+import { useEmbedMessageLogStore } from "@/stores/embed/embedMessageLogStore";
 import { globalConfig, useConfigStore } from "@/stores/app/configStore";
 import { useDebugRunProfileStore } from "@/stores/debug/debugRunProfileStore";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
@@ -19,7 +25,12 @@ export interface MPELogExportPayload {
 }
 
 export function buildMPELogExportPayload(
-  frontendLogs: Record<string, unknown>,
+  frontendLogs: Record<string, unknown> = {
+    backend: useLoggerStore.getState().logs,
+    importantBackend: useLoggerStore.getState().importantLogs,
+    operation: useOperationLogStore.getState().logs,
+    embed: useEmbedMessageLogStore.getState().logs,
+  },
 ): MPELogExportPayload {
   const fileState = useFileStore.getState();
   const flowState = useFlowStore.getState();
@@ -66,9 +77,16 @@ export function buildMPELogExportPayload(
       resourcePreflight: debugState.resourcePreflight,
       resourceHealth: debugState.resourceHealth,
       capabilities: debugState.capabilities,
+      session: debugState.session,
       activeRun: debugState.activeRun,
+      lastStopRequest: debugState.lastStopRequest,
+      agentTestResults: debugState.agentTestResults,
+      events: useDebugTraceStore.getState().events,
+      performanceSummaries: useDebugTraceStore.getState().performanceSummaries,
+      diagnostics: useDebugDiagnosticsStore.getState().diagnostics,
       lastError: debugState.lastError,
     },
+    interfaceRun: useInterfaceRunStore.getState(),
     configs: configState.configs,
   }) as Record<string, unknown>;
 

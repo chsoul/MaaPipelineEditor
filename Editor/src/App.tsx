@@ -1,3 +1,4 @@
+import { initializeDiagnosticSnapshots } from "@/features/desktop/diagnostics";
 import { initializePiEditor } from "@/features/pi-editor/lifecycle";
 import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { initializeProjectInterface } from "@/features/project-interface/projectInterfaceService";
@@ -318,6 +319,7 @@ function App() {
   }, [handleFileDrop, handleDragOver]);
 
   useEffect(() => initializeDesktopSession(), []);
+  useEffect(() => initializeDiagnosticSnapshots(), []);
 
   // 条件渲染控制
   const showHeader = !isEmbed || !isPanelHidden("header");

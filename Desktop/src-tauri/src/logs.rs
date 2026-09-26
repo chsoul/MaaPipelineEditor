@@ -118,7 +118,7 @@ pub async fn read_log(
         .map_err(|e| e.to_string())?
 }
 
-fn archive(dir: &Path) -> Result<Vec<u8>, String> {
+pub(crate) fn archive(dir: &Path) -> Result<Vec<u8>, String> {
     let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
     let options = zip::write::SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated);
@@ -133,14 +133,18 @@ fn archive(dir: &Path) -> Result<Vec<u8>, String> {
         if total > 128 * 1024 * 1024 {
             return Err("日志总量超过 128 MB，请打开日志目录后按需打包".into());
         }
-        zip.start_file(*id, options).map_err(|e| e.to_string())?;
+        zip.start_file(format!("desktop/{id}"), options)
+            .map_err(|e| e.to_string())?;
         // Fixed length snapshot: a running service may continue writing during export.
         std::io::copy(&mut Read::by_ref(&mut file).take(size), &mut zip)
             .map_err(|e| e.to_string())?;
     }
-    zip.start_file("desktop.txt", options)
+    zip.start_file("desktop/desktop.txt", options)
         .map_err(|e| e.to_string())?;
-    write!(zip, "MPE Desktop {}\nDesktop revision: {}\nPlatform: {}\nExported at (Unix seconds): {}\nContains launcher and managed LocalBridge output.\n", env!("CARGO_PKG_VERSION"), crate::desktop_release::revision(), std::env::consts::OS, now()).map_err(|e| e.to_string())?;
+    write!(zip, "MPE Desktop {}\nDesktop revision: {}\nPlatform: {}\nExported at (Unix seconds): {}\nLocalBridge is not installed; backend and frontend diagnostics are unavailable.\n", env!("CARGO_PKG_VERSION"), crate::desktop_release::revision(), std::env::consts::OS, now()).map_err(|e| e.to_string())?;
+    zip.start_file("manifest.json", options)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(br#"{"warnings":["LocalBridge is not installed; backend and frontend diagnostics are unavailable."]}"#).map_err(|e| e.to_string())?;
     Ok(zip.finish().map_err(|e| e.to_string())?.into_inner())
 }
 
@@ -151,7 +155,7 @@ pub async fn export_logs(
 ) -> Result<Option<String>, String> {
     authorize(&window, "launcher")?;
     tauri::async_runtime::spawn_blocking(move || {
-        let bytes = archive(&data_dir(&app))?;
+        let bytes = crate::diagnostics::archive(&app)?;
         exports::save_zip(&app, &format!("mpe-desktop-logs-{}.zip", now()), &bytes)
     })
     .await
@@ -178,9 +182,19 @@ mod tests {
         assert!(resolve(dir.path(), "settings.json").is_err());
         let mut zip =
             zip::ZipArchive::new(std::io::Cursor::new(archive(dir.path()).unwrap())).unwrap();
-        assert!(zip.by_name("settings.json").is_err());
+        assert!(zip.by_name("desktop/settings.json").is_err());
+        let mut manifest = String::new();
+        zip.by_name("manifest.json")
+            .unwrap()
+            .read_to_string(&mut manifest)
+            .unwrap();
+        let manifest: serde_json::Value = serde_json::from_str(&manifest).unwrap();
+        assert!(manifest["warnings"][0]
+            .as_str()
+            .unwrap()
+            .contains("LocalBridge is not installed"));
         let mut content = String::new();
-        zip.by_name("launcher.log")
+        zip.by_name("desktop/launcher.log")
             .unwrap()
             .read_to_string(&mut content)
             .unwrap();
@@ -198,6 +212,9 @@ mod tests {
         assert!(preview.content.ends_with("一行日志\n"));
         let mut zip =
             zip::ZipArchive::new(std::io::Cursor::new(archive(dir.path()).unwrap())).unwrap();
-        assert_eq!(zip.by_name("mpelb.log").unwrap().size(), text.len() as u64);
+        assert_eq!(
+            zip.by_name("desktop/mpelb.log").unwrap().size(),
+            text.len() as u64
+        );
     }
 }

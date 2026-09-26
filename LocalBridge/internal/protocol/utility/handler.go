@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/diagnostics"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
@@ -22,17 +23,17 @@ import (
 
 // Utility协议处理器
 type UtilityHandler struct {
-	mfwService *mfw.Service
-	root       string // 根目录路径
-	version    string
+	mfwService  *mfw.Service
+	root        string // 根目录路径
+	diagnostics *diagnostics.Recorder
 }
 
 // 创建Utility协议处理器
-func NewUtilityHandler(mfwService *mfw.Service, root string, version string) *UtilityHandler {
+func NewUtilityHandler(mfwService *mfw.Service, root string, recorder *diagnostics.Recorder) *UtilityHandler {
 	return &UtilityHandler{
-		mfwService: mfwService,
-		root:       root,
-		version:    version,
+		mfwService:  mfwService,
+		root:        root,
+		diagnostics: recorder,
 	}
 }
 
@@ -66,11 +67,14 @@ func (h *UtilityHandler) Handle(msg models.Message, conn *server.Connection) *mo
 	case "/etl/utility/open_maafw_log_dir":
 		h.handleOpenMaafwLogDir(conn, msg)
 
+	case "/etl/utility/snapshot_logs":
+		h.handleSnapshotLogs(msg)
+
 	case "/etl/utility/export_logs":
 		h.handleExportLogs(conn, msg)
 
 	case "/etl/utility/export_mfw_logs":
-		h.handleExportMFWLogs(conn, msg)
+		h.handleExportLogs(conn, msg)
 
 	default:
 		logger.Warn("Utility", "未知的Utility路由: %s", path)

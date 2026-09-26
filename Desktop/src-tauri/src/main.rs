@@ -4,6 +4,7 @@ mod content;
 mod crash;
 mod credentials;
 mod desktop_release;
+mod diagnostics;
 mod engine;
 mod exports;
 mod log_text;
@@ -63,6 +64,9 @@ fn main() {
                     env!("MPE_DESKTOP_REVISION")
                 ),
             );
+            if let Err(err) = diagnostics::write_info(app.handle()) {
+                logs::record(app.handle(), &format!("保存桌面诊断信息失败：{err}"));
+            }
             app.manage(state::State::new(settings::load(app.handle())));
             session::monitor(app.handle().clone());
             startup::watch(app.handle().clone());

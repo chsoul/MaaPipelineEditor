@@ -132,13 +132,14 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.0.2",
     date: "2026-9-26",
-    type: "perf",
+    type: "fix",
     maafwVersion: "5.14.0",
     updates: {
       perfs: [
         "优化桌面端版本获取与缓存机制，独立启动器与前后端更新检查配置",
         "优化桌面端交互效果",
       ],
+      fixes: ["修复桌面端打包范围不全的问题"],
     },
   },
   {
